@@ -19,5 +19,25 @@
 к функционалу API: https://www.screenshotmachine.com/register.php
 
 ### Инструкция по запуску
-1. 
-
+1. Клонируем репозиторий
+```sh
+git clone git@github.com:artemyev1003/screenshot_bot.git
+```
+2. Определяем переменные среды (без пробелов и кавычек, например:
+SCREENSHOTS_DIR=/Users/user/screenshots)
+- SCREENSHOTS_DIR - путь к папке, в которую будут сохраняться скриншоты
+- TG_TOKEN - токен Telegram Bot API
+- SCREENSHOTMACHINE_API_KEY - токен Screenshot API
+```sh
+echo SCREENSHOTS_DIR=... > .env
+echo TG_TOKEN=... >> .env
+echo SCREENSHOTMACHINE_API_KEY=... >> .env
+```
+3. Собираем образ и запускаем контейнер 
+(с использованием значения SCREENSHOTS_DIR в качестве одного из параметров) 
+```sh
+source .env
+echo $SCREENSHOTS_DIR
+docker build -t screenshots_bot .
+docker run -d -v $SCREENSHOTS_DIR:/app/screenshots --env-file .env --name bot screenshots_bot
+```
