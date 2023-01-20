@@ -19,13 +19,14 @@
 к функционалу API: https://www.screenshotmachine.com/register.php
 
 ### Инструкция по запуску
-1. Клонируем репозиторий
+1. Клонируем репозиторий и переходим в директорию проекта
 ```sh
 git clone git@github.com:artemyev1003/screenshot_bot.git
+cd screenshot_bot
 ```
 2. Определяем переменные среды (без пробелов и кавычек, например:
 SCREENSHOTS_DIR=/Users/user/screenshots)
-- SCREENSHOTS_DIR - путь к папке, в которую будут сохраняться скриншоты
+- SCREENSHOTS_DIR - **абсолютный** путь к папке, в которую будут сохраняться скриншоты
 - TG_TOKEN - токен Telegram Bot API
 - SCREENSHOTMACHINE_API_KEY - токен Screenshot API
 ```sh
