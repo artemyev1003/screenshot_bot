@@ -1,11 +1,14 @@
 import os
 import urllib
 import pytest
+import unittest
 import responses
 import requests
 import requests_mock
 import json
+from unittest import mock
 from contextlib import ExitStack as does_not_raise
+from parameterized import parameterized
 
 
 import screenshot_tool
@@ -121,14 +124,27 @@ def test_send_screenshot():
 @responses.activate
 @pytest.mark.parametrize("message, response_code, expected_result", [
     ("https://www.existing-site.com", 200, "200 OK"),
-    ("Some text", None, "Please enter a valid URL. Perhaps you meant https://Some text?"),
+    ("https://www.moved-site.com", 301, "301 Moved Permanently"),
+    ("https://www.closed-site.com", 403, "403 Forbidden"),
+    ("https://www.non-existing-site.com", 404, "404 Not Found"),
+    ("https://www.malfunctioning-site.com", 500, "500 Internal Server Error"),
 ])
 def test_get_status_code(message, response_code, expected_result):
-    if response_code is not None:
-        responses.add(method=responses.GET,
-                      url=message,
-                      status=response_code)
-        result = get_status_code(message)
-    else:
-        result = get_status_code(message)
+    responses.add(method=responses.GET,
+                  url=message,
+                  status=response_code)
+    result = get_status_code(message)
     assert result == expected_result
+
+
+class TestGetStatusCodeFail(unittest.TestCase):
+    @parameterized.expand([
+        (requests.exceptions.RequestException, "Connection error"),
+        (requests.exceptions.MissingSchema,
+         "Please enter a valid URL. Perhaps you meant https://message?"
+         )])
+    def test_get_status_code_fail(self, exception, expected_result):
+        with mock.patch("requests.get",
+                        side_effect=exception()):
+            result = get_status_code("message")
+            assert result == expected_result

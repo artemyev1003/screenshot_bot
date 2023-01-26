@@ -38,6 +38,6 @@ echo SCREENSHOTMACHINE_API_KEY=... >> .env
 (с использованием значения SCREENSHOTS_DIR в качестве одного из параметров) 
 ```sh
 source .env
-docker build -t screenshots_bot .
-docker run -d -v $SCREENSHOTS_DIR:/app/screenshots --env-file .env --name bot screenshots_bot
+docker build -t screenshot_bot .
+docker run -v $SCREENSHOTS_DIR:/app/screenshots --env-file .env --name bot screenshot_bot
 ```

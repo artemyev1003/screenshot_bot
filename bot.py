@@ -1,6 +1,9 @@
 import os
 import time
 import requests
+import logging
+import logging.config
+import yaml
 from dotenv import load_dotenv
 from screenshot_tool import take_screenshot
 
@@ -10,6 +13,17 @@ from screenshot_tool import take_screenshot
 load_dotenv()
 TG_TOKEN = os.getenv('TG_TOKEN')
 URL = f"https://api.telegram.org/bot{TG_TOKEN}/"
+LOGS_PATH = "screenshots/logs/"
+
+
+def setup_logging():
+    """Loads logging configuration"""
+    logs_path = LOGS_PATH
+    if not os.path.exists(logs_path):
+        os.makedirs(logs_path, exist_ok=True)
+    with open('logger_config.yaml', 'r') as f:
+        config = yaml.safe_load(f.read())
+        logging.config.dictConfig(config)
 
 
 def check_tg_connection():
@@ -17,11 +31,14 @@ def check_tg_connection():
     Checks connection to the Telegram API.
     """
     url = URL + 'getMe'
+    logger.info("Checking connection to the Telegram bot.")
     result = requests.get(url).json()
     if result.get("ok") is False:
-        raise RuntimeError("Failed to connect to the Telegram bot. "
-              "Telegram API token is invalid or missing.")
-    print("Connected")
+        error_message = "Failed to connect to the Telegram bot. " \
+                        "Telegram API token is invalid or missing."
+        logger.error(error_message)
+        raise RuntimeError(error_message)
+    logger.info("Connection successful.")
 
 
 def get_updates(offset: int = None):
@@ -47,6 +64,7 @@ def send_message(text: str, chat_id: int):
     """
     url = URL + f"sendMessage?text={text}&chat_id={chat_id}"
     requests.get(url)
+    logger.info(f"Response sent: {text}")
 
 
 def send_screenshot(img_path: str, text: str, chat_id: int):
@@ -56,6 +74,7 @@ def send_screenshot(img_path: str, text: str, chat_id: int):
     files = {'document': open(img_path, 'rb')}
     url = URL + f"sendDocument?caption={text}&chat_id={chat_id}"
     requests.post(url, files=files)
+    logger.info(f"Response sent: {text}")
 
 
 def get_status_code(url: str) -> str:
@@ -66,10 +85,30 @@ def get_status_code(url: str) -> str:
     try:
         result = requests.get(url)
         return str(result.status_code) + ' ' + result.reason
-    except requests.exceptions.MissingSchema:
+    except requests.exceptions.MissingSchema as e:
+        logger.error(f"Exception occured: {e}")
         return f"Please enter a valid URL. Perhaps you meant https://{url}?"
     except requests.exceptions.RequestException as e:
-        return "Failed to connect: " + str(e)
+        logger.error(f"Exception occured: {e}")
+        return "Connection error"
+
+
+def process_message(message):
+    """
+    Checks if the message received from the user has text in it.
+    If yes, processes it and sends a response containing a screenshot with text
+    or just text.
+    """
+    if user_message := message.get("message", {}).get("text"):
+        chat = message["message"]["chat"]["id"]
+        user = message["message"]["from"]["username"]
+        logger.info(f"New message received from user {user}: {user_message}")
+        response_text = get_status_code(user_message)
+        if response_text.startswith("200"):
+            img_path = take_screenshot(url=user_message)
+            send_screenshot(img_path, response_text, chat)
+        else:
+            send_message(response_text, chat)
 
 
 def main():
@@ -91,16 +130,11 @@ def main():
             """
             if update_id < message["update_id"]:
                 update_id = message["update_id"]
-                # Check if there is text in the message
-                if user_message := message.get("message", {}).get("text"):
-                    text = get_status_code(user_message)
-                    chat = message["message"]["chat"]["id"]
-                    if text.startswith("200"):
-                        img_path = take_screenshot(url=user_message)
-                        send_screenshot(img_path, text, chat)
-                    else:
-                        send_message(text, chat)
+                process_message(message)
 
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
     main()

@@ -13,7 +13,7 @@ def no_http_requests(monkeypatch):
         raise RuntimeError("Network access not allowed during testing")
 
     monkeypatch.setattr("urllib3.connectionpool.HTTPConnectionPool.urlopen",
-                        lambda *args, **kwargs: urlopen_mock)
+                        lambda *args, **kwargs: urlopen_mock())
 
 
 @pytest.fixture(autouse=True)
@@ -22,4 +22,3 @@ def initdir(tmp_path, monkeypatch):
     Changes current path to pytest-provided temporary directory.
     """
     monkeypatch.chdir(tmp_path)
-

@@ -1,6 +1,7 @@
 import os
 import time
 import requests
+import logging
 import urllib.parse
 from dotenv import load_dotenv
 
@@ -48,4 +49,6 @@ def take_screenshot(url: str) -> str:
         with open(filename, 'wb') as file:
             for chunk in response:
                 file.write(chunk)
+            logging.info(f"Screenshot saved as:\n {filename}")
+
         return filename
